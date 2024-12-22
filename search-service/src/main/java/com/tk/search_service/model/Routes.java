@@ -1,6 +1,5 @@
 package com.tk.search_service.model;
 
-import java.sql.Time;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,11 +13,13 @@ import lombok.Data;
 public class Routes {
 	
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq_gen")
-    @SequenceGenerator(name = "user_seq_gen", sequenceName = "user_seq", allocationSize = 1)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "routes_seq_gen")
+    @SequenceGenerator(name = "routes_seq_gen", sequenceName = "routes_seq", allocationSize = 1)
 	private int routeId;
 	
 	private String trainId;
+	
+    private String station;
 	
 	private String arrivalTime;
 	
