@@ -16,6 +16,6 @@ public interface SearchRepository extends JpaRepository<Routes, Integer>{
 	@Query("SELECT new com.tk.search_service.dto.Route(R1.trainId, R1.station, R1.arrivalTime, R1.departureTime) FROM Routes R1 INNER JOIN Routes R2 ON R1.trainId = R2.trainId WHERE R1.station = :source AND R2.station = :destination")
 	List<Route> findTrains(@Param("source") String source, @Param("destination") String destination);
 	
-	@Query("SELECT R.station FROM Routes R WHERE R.trainId = :trainId")
+	@Query("SELECT new com.tk.search_service.dto.Stations(R.station) FROM Routes R WHERE R.trainId = :trainId")
     List<Stations> findByTrainId(String trainId);
 }
