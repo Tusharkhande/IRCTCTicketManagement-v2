@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import com.tk.seat_service.dto.AddStation;
 import com.tk.seat_service.dto.BookingRequest;
+import com.tk.seat_service.dto.CancelRequest;
+import com.tk.seat_service.dto.SeatResponse;
 import com.tk.seat_service.model.StationToSeatMapping;
 import com.tk.seat_service.model.Train;
 import com.tk.seat_service.repository.SeatRepository;
@@ -28,17 +30,20 @@ public class SeatService {
 	@Autowired
 	TrainRepository trainRepository;
 	
-	public boolean isSeatAvailable(BookingRequest bookingRequest) {
+	public ResponseEntity<SeatResponse> isSeatAvailable(BookingRequest bookingRequest) {
+		SeatResponse seatResponse = new SeatResponse();
 		
 		List<StationToSeatMapping> route = seatRepository.findAllByTrainTrainId(bookingRequest.getTrainId());
+		
 		for(StationToSeatMapping staion : route) {
 			System.out.println(staion);
 		}
 		Train train = trainRepository.findByTrainId(bookingRequest.getTrainId());
 		
-//		if(train==null || route.isEmpty()) {
-//			return false;
-//		}
+		if(train==null || route.isEmpty()) {
+			seatResponse.setAvailable(false);
+			return new ResponseEntity<SeatResponse>(seatResponse, HttpStatus.NOT_FOUND);
+		}
 		
 		int totalSeats = train.getSeatCount();
 		
@@ -73,7 +78,8 @@ public class SeatService {
 			if(!unavailableSeats.contains(i)) {
 				availableSeat = i;
 //				log.info("Seat available: ", i);
-				System.out.println("Seat available: "+i);
+				seatResponse.setAvailable(true);
+				seatResponse.setSeatId(availableSeat);
 				break;
 			}
 		}
@@ -81,7 +87,8 @@ public class SeatService {
 		if(availableSeat == -1) {
 			log.warn("Seat not available!");
 			System.out.println("Seat not available");
-			return false;
+			seatResponse.setAvailable(false);
+			return new ResponseEntity<SeatResponse>(seatResponse, HttpStatus.NOT_FOUND);
 		}
 		
 		track = false;
@@ -94,14 +101,19 @@ public class SeatService {
 			}
 			if(track) {
 				List<Integer> seats = station.getSeats();
-				seats.add(availableSeat);
-				station.setSeats(seats);
-				seatRepository.save(station);
+				if(seats.size() < totalSeats) {
+					seats.add(availableSeat);
+					station.setSeats(seats);
+					seatRepository.save(station);
+				}else {
+					seatResponse.setAvailable(false);
+					return new ResponseEntity<SeatResponse>(seatResponse, HttpStatus.NOT_FOUND);
+				}
 			}
 			
 		}
-		
-		return true;
+
+		return new ResponseEntity<SeatResponse>(seatResponse, HttpStatus.OK);
 	}
 
 	public ResponseEntity<StationToSeatMapping> saveStation(AddStation station) {
@@ -120,7 +132,7 @@ public class SeatService {
 			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
-	
+
 	public ResponseEntity<List<StationToSeatMapping>> getStations() {
 		List<StationToSeatMapping> list = seatRepository.findAll();
 		if(list == null) {
@@ -129,4 +141,42 @@ public class SeatService {
 			return new ResponseEntity<>(list, HttpStatus.OK);
 		}
 	}
+	
+	public ResponseEntity<Boolean> cancelTicket(CancelRequest cancelRequest){
+		List<StationToSeatMapping> route = seatRepository.findAllByTrainTrainId(cancelRequest.getTrainId());
+		boolean cancelStatus = false;
+		if(route.isEmpty()) {
+			return new ResponseEntity<Boolean>(cancelStatus, HttpStatus.NOT_FOUND);
+		}
+		int seatToCancel = cancelRequest.getSeatId();
+		System.out.println("seattocancel: " + seatToCancel);
+		boolean track = false;
+		
+		
+		for(StationToSeatMapping station : route) {
+			if(station.getStation().equals(cancelRequest.getSource())) {
+				track = true;
+			}else if(station.getStation().equals(cancelRequest.getDestination())) {
+				track = false;
+				break;
+			}
+			if(track) {
+				List<Integer> seats = station.getSeats();
+				if(!seats.contains(Integer.valueOf(seatToCancel))) {
+					cancelStatus = false;
+					return new ResponseEntity<Boolean>(cancelStatus, HttpStatus.NOT_FOUND);
+				}else {
+					seats.remove(Integer.valueOf(seatToCancel));	
+				}
+
+				System.out.println("seats: " + seats);
+				station.setSeats(seats);
+				seatRepository.save(station);
+				cancelStatus = true;
+			}
+			
+		}
+		return new ResponseEntity<>(cancelStatus, HttpStatus.OK);
+	}
+
 }

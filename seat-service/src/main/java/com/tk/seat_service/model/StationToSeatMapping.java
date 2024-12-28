@@ -19,7 +19,7 @@ public class StationToSeatMapping {
     private int id;
 
     @ManyToOne
-    @JoinColumn(name = "train_id", referencedColumnName = "train_id", nullable=false)
+    @JoinColumn(name = "trainId", referencedColumnName = "trainId")
     private Train train;
 
     private String station;

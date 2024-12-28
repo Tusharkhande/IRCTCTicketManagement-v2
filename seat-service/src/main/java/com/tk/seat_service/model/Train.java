@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 public class Train {
 
     @Id
-    @Column(name = "train_id")
     private String trainId;
     private String trainName;
     private int seatCount;
